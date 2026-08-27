@@ -1,0 +1,22 @@
+# This repo is PUBLIC — jsDelivr only serves public repos, and it is the CDN
+# the live careers page loads from.
+#
+# So everything is excluded by default and only the files a browser must fetch
+# are opted back in. Setup scripts, the HubSpot schema, the prototype and the
+# build specs stay local: they document the portal id, the workflow config and
+# internal HR/legal notes, none of which belong on a public CDN.
+
+/*
+!.gitignore
+!README.md
+!LICENSE
+
+!/careers-resume-parser/
+/careers-resume-parser/*
+!/careers-resume-parser/resume-parser.js
+!/careers-resume-parser/skills.js
+!/careers-resume-parser/readers.js
+
+!/careers-hubspot/
+/careers-hubspot/*
+!/careers-hubspot/careers-form.js
