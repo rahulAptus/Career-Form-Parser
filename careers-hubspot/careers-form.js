@@ -63,7 +63,14 @@ const UTM_KEY = 'aptus_utm';
  * makes React notice.
  */
 function setNativeValue(el, value) {
-  const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+  // The setter is brand-checked against its own interface: calling the
+  // HTMLInputElement one on a <select> throws "Illegal invocation". The
+  // Applied-to fields are dropdowns, so getting this wrong threw inside
+  // onFormReady and silently skipped every fill after it.
+  const proto =
+    el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype :
+    el instanceof HTMLSelectElement   ? HTMLSelectElement.prototype :
+                                        HTMLInputElement.prototype;
   const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
   if (setter) setter.call(el, value); else el.value = value;
   el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -279,14 +286,26 @@ export async function mountCareersForm({
 
       // Job context and attribution are hidden fields on the contact; the
       // workflow copies them onto the deal it creates.
-      fillText(form, 'candidate_applied_job_id', job.id);
-      fillText(form, 'candidate_applied_job_title', job.title);
-      fillText(form, 'candidate_applied_career_area', job.area);
-      fillText(form, 'candidate_applied_location', job.location);
-      fillText(form, 'candidate_applied_work_model', job.workModel);
-      fillText(form, 'candidate_utm_source', utm.utm_source);
-      fillText(form, 'candidate_utm_medium', utm.utm_medium);
-      fillText(form, 'candidate_utm_campaign', utm.utm_campaign);
+      //
+      // Filled one at a time rather than in a loop that can abort: a single
+      // unexpected field type used to throw here and take the resume listener
+      // below down with it, so the form looked fine and parsed nothing.
+      for (const [name, value] of [
+        ['candidate_applied_job_id', job.id],
+        ['candidate_applied_job_title', job.title],
+        ['candidate_applied_career_area', job.area],
+        ['candidate_applied_location', job.location],
+        ['candidate_applied_work_model', job.workModel],
+        ['candidate_utm_source', utm.utm_source],
+        ['candidate_utm_medium', utm.utm_medium],
+        ['candidate_utm_campaign', utm.utm_campaign]
+      ]) {
+        try {
+          fillText(form, name, value);
+        } catch (err) {
+          console.warn(`[aptus] could not set ${name}:`, err);
+        }
+      }
 
       const file = form.querySelector('input[type="file"]');
       if (!file) {
